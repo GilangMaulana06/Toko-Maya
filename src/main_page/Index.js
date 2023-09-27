@@ -4,33 +4,106 @@ import Header from './Header'
 import Table from './Table'
 import { TouchableWithoutFeedback } from 'react-native-gesture-handler'
 import { Modal, Portal, TextInput, Button, Appbar } from 'react-native-paper'
-import { apiDeleteData, apiGetData } from '../api/api'
+import { apiDeleteData, apiGetData, apiFilterData } from '../api/api'
 
 const { width, height } = Dimensions.get('screen')
 
 const Index = ({ navigation }) => {
 
+    const [paramData, setParamData] = useState({
+        limit: 10,
+        offset: 0
+    })
+
     const [data, setData] = useState([])
+    const [totalData, setTotalData] = useState(0)
     const [selectedData, setSelectedData] = useState([])
-    const [type, setType] = useState('')
-    const [showSearchBar, setShowSearchBar] = useState(false)
     const [showModalFilter, setShowModalFilter] = useState(false)
     const [showModalDetails, setShowModalDetails] = useState(false)
+    const [disableButton, setDisableButton] = useState(false)
+    const [refreshing, setRefreshing] = useState(false);
+    const [hidePagination, setHidePagination] = useState(false)
+
+    // STATE MODAL
+    const [nama, setNama] = useState('')
+    const [ukuran, setUkuran] = useState('')
+    const [type, setType] = useState('')
+    const [brand, setBrand] = useState('')
+
+    const modalObject = [
+        {
+            label: 'Nama barang',
+            value: nama,
+            placeholder: '',
+            onChangeText: (text) => setNama(text)
+        },
+        {
+            label: 'Ukuran',
+            value: ukuran,
+            placeholder: 'contoh : 10 inch / 10*30',
+            onChangeText: (text) => setUkuran(text)
+        },
+        {
+            label: 'Tipe barang',
+            value: type,
+            placeholder: '',
+            onChangeText: (text) => setType(text)
+        },
+        {
+            label: 'Brand',
+            value: brand,
+            placeholder: '',
+            onChangeText: (text) => setBrand(text)
+        },
+    ]
+
+    const detailSchema = [
+        {
+            title: 'Nama barang',
+            value: 'nama_item'
+        },
+        {
+            title: 'Tipe',
+            value: 'type'
+        },
+        {
+            title: 'Brand',
+            value: 'brand'
+        },
+        {
+            title: 'Ukuran',
+            value: 'ukuran'
+        },
+        {
+            title: 'Harga modal',
+            value: 'modal'
+        },
+        {
+            title: 'Harga ecer',
+            value: 'harga_ecer'
+        },
+        {
+            title: 'Harga grosir',
+            value: 'harga_grosir'
+        },
+    ]
 
     useEffect(() => {
         getData()
-    }, [])
+    }, [paramData])
 
     const getData = async () => {
-        console.log('GET DATA')
         try {
-            const res = await apiGetData()
-            setData(res)
+            const res = await apiGetData(paramData.limit, paramData.offset)
+            setTotalData(res.total_data)
+            setData(res?.data)
         } catch (err) {
             console.log(err)
-            Alert.alert('Error nih cuy', 'Restart aplikasi nya bang', [{
-                text: 'OK'
-            }])
+            Alert.alert('Error bang', 'Telpon urang bueknyo', [
+                {
+                    text: 'OK'
+                }
+            ])
         }
     }
 
@@ -55,13 +128,11 @@ const Index = ({ navigation }) => {
             if (isConfirm === 'DELETE') {
                 console.log('DELETE')
                 try {
-                    const value = {
-                        id : selectedData[0]['id']
-                    }
-                    const res = await apiDeleteData(value)
+                    const res = await apiDeleteData(selectedData[0]['id'])
                     const filter = data.filter(x => selectedData[0]['id'] !== x.id)
                     setData(filter)
                     setShowModalDetails(false)
+                    setTotalData(totalData - 1)
                     Alert.alert('Data berhasil dihapus', '', [
                         {
                             text: 'OK'
@@ -79,37 +150,88 @@ const Index = ({ navigation }) => {
         }
     }
 
-    // FILTER TYPE
-    const onSubmit = () => {
-        console.log('SUBMIT')
-        const data = {
-            type: type
+    const filterData = async () => {
+        console.log('FILTER DATA')
+        setDisableButton(true)
+        try {
+            const res = await apiFilterData(nama, ukuran, type, brand, paramData.limit, 0)
+            if (res.data.length === 0) {
+                Alert.alert('Barang yang anda cari tidak ditemukan', 'Ulangi lagi', [
+                    {
+                        text: 'OK'
+                    }
+                ])
+                setDisableButton(false)
+            } else {
+                setTotalData(res.total_data)
+                setData(res.data)
+                setNama('')
+                setUkuran('')
+                setType('')
+                setBrand('')
+                setShowModalFilter(false)
+                setDisableButton(false)
+                setHidePagination(true)
+            }
+        } catch (err) {
+            console.log(err)
+            setNama('')
+            setUkuran('')
+            setType('')
+            setBrand('')
+            setShowModalFilter(false)
+            setDisableButton(false)
+            Alert.alert('Filter data gagal', 'Ulangi lagi', [
+                {
+                    text: 'OK'
+                }
+            ])
         }
-        console.log(data)
-        setShowModalFilter(false)
+    }
+
+    const onRefresh = async () => {
+        console.log('refresh page')
+        setRefreshing(true);
+        getData()
+        setHidePagination(false)
+        setTimeout(() => {
+            setRefreshing(false)
+        }, 150)
     }
 
     const propsHeader = {
         setData: setData,
         setShowModalFilter: setShowModalFilter,
-        setShowSearchBar: setShowSearchBar,
         navigation: navigation,
     }
 
     const propsTable = {
-        getData: getData,
         data: data,
         setData: setData,
         setSelectedData: setSelectedData,
-        showSearchBar: showSearchBar,
-        setShowModalDetails: setShowModalDetails
+        setShowModalDetails: setShowModalDetails,
+        refreshing: refreshing,
+        setRefreshing: setRefreshing,
+        onRefresh: onRefresh,
+        paramData: paramData,
+        setParamData: setParamData,
+        totalData: totalData,
+        setTotalData: setTotalData,
+        hidePagination: hidePagination
     }
 
     return (
         <>
             {/* MODAL FOR FILTER */}
             <Portal>
-                <Modal visible={showModalFilter} onDismiss={() => setShowModalFilter(false)} style={{
+                <Modal visible={showModalFilter} onDismiss={() => {
+                    setNama('')
+                    setUkuran('')
+                    setType('')
+                    setBrand('')
+                    setShowModalFilter(false)
+                    setDisableButton(false)
+                }} style={{
                     width: width,
                     alignItems: 'center',
                 }}>
@@ -120,17 +242,23 @@ const Index = ({ navigation }) => {
                             alignSelf: 'center',
                             color: '#000'
                         }}>Filter barang</Text>
+                        {
+                            modalObject.map((x, key) => {
+                                return (
+                                    <TextInput key={key}
+                                        activeOutlineColor='black'
+                                        style={{ textAlign: 'center', width: '90%', alignSelf: 'center', marginTop: 20 }}
+                                        mode='outlined'
+                                        label={x.label}
+                                        value={x.value}
+                                        placeholder={x.placeholder}
+                                        onChangeText={x.onChangeText}
+                                    />
+                                )
+                            })
+                        }
 
-                        <TextInput
-                            activeOutlineColor='black'
-                            style={{ textAlign: 'center', width: '90%', alignSelf: 'center', marginTop: 20 }}
-                            mode='outlined'
-                            label={'Tipe barang'}
-                            value={type}
-                            onChangeText={(text) => setType(text)}
-                        />
-
-                        <Button mode='contained' style={{ width: '50%', alignSelf: 'center', marginTop: 30 }} onPress={() => { onSubmit() }}>
+                        <Button disabled={disableButton} mode='contained' style={{ width: '50%', alignSelf: 'center', marginTop: 30 }} onPress={() => { filterData() }}>
                             Cari
                         </Button>
                     </View>
@@ -157,76 +285,27 @@ const Index = ({ navigation }) => {
 
                         {selectedData.length > 0 &&
                             <>
-                                <View style={{ flexDirection: 'row' }}>
-                                    <View style={{ flex: 30 }}>
-                                        <Text style={{ color: '#000', fontSize: 20, marginBottom: 10 }}>Nama barang</Text>
-                                    </View>
-                                    <View style={{ flex: 5, alignItems: 'center' }}>
-                                        <Text style={{ color: '#000', fontSize: 20 }}>:</Text>
-                                    </View>
-                                    <View style={{ flex: 65 }}>
-                                        <Text style={{ color: '#000', fontSize: 20 }}>{selectedData[0]['nama_item']}</Text>
-                                    </View>
-                                </View>
-                                <View style={{ flexDirection: 'row' }}>
-                                    <View style={{ flex: 30 }}>
-                                        <Text style={{ color: '#000', fontSize: 20, marginBottom: 10 }}>Tipe</Text>
-                                    </View>
-                                    <View style={{ flex: 5, alignItems: 'center' }}>
-                                        <Text style={{ color: '#000', fontSize: 20 }}>:</Text>
-                                    </View>
-                                    <View style={{ flex: 65 }}>
-                                        <Text style={{ color: '#000', fontSize: 20 }}>{selectedData[0]['type']}</Text>
-                                    </View>
-                                </View>
-                                <View style={{ flexDirection: 'row' }}>
-                                    <View style={{ flex: 30 }}>
-                                        <Text style={{ color: '#000', fontSize: 20, marginBottom: 10 }}>Ukuran</Text>
-                                    </View>
-                                    <View style={{ flex: 5, alignItems: 'center' }}>
-                                        <Text style={{ color: '#000', fontSize: 20 }}>:</Text>
-                                    </View>
-                                    <View style={{ flex: 65 }}>
-                                        <Text style={{ color: '#000', fontSize: 20 }}>{selectedData[0]['ukuran']}</Text>
-                                    </View>
-                                </View>
-                                <View style={{ flexDirection: 'row' }}>
-                                    <View style={{ flex: 30 }}>
-                                        <Text style={{ color: '#000', fontSize: 20, marginBottom: 10 }}>Harga modal</Text>
-                                    </View>
-                                    <View style={{ flex: 5, alignItems: 'center' }}>
-                                        <Text style={{ color: '#000', fontSize: 20 }}>:</Text>
-                                    </View>
-                                    <View style={{ flex: 65 }}>
-                                        <Text style={{ color: '#000', fontSize: 20 }}>{selectedData[0]['modal']}</Text>
-                                    </View>
-                                </View>
-                                <View style={{ flexDirection: 'row' }}>
-                                    <View style={{ flex: 30 }}>
-                                        <Text style={{ color: '#000', fontSize: 20, marginBottom: 10 }}>Harga ecer</Text>
-                                    </View>
-                                    <View style={{ flex: 5, alignItems: 'center' }}>
-                                        <Text style={{ color: '#000', fontSize: 20 }}>:</Text>
-                                    </View>
-                                    <View style={{ flex: 65 }}>
-                                        <Text style={{ color: '#000', fontSize: 20 }}>{selectedData[0]['harga_ecer']}</Text>
-                                    </View>
-                                </View>
-                                <View style={{ flexDirection: 'row' }}>
-                                    <View style={{ flex: 30 }}>
-                                        <Text style={{ color: '#000', fontSize: 20 }}>Harga grosir</Text>
-                                    </View>
-                                    <View style={{ flex: 5, alignItems: 'center' }}>
-                                        <Text style={{ color: '#000', fontSize: 20 }}>:</Text>
-                                    </View>
-                                    <View style={{ flex: 65 }}>
-                                        <Text style={{ color: '#000', fontSize: 20 }}>{selectedData[0]['harga_grosir']}</Text>
-                                    </View>
-                                </View>
+                                {
+                                    detailSchema.map((value, key) => {
+                                        return (
+                                            <View style={{ flexDirection: 'row' }} key={key}>
+                                                <View style={{ flex: 30 }}>
+                                                    <Text style={{ color: '#000', fontSize: 20, marginBottom: 10 }}>{value.title}</Text>
+                                                </View>
+                                                <View style={{ flex: 5, alignItems: 'center' }}>
+                                                    <Text style={{ color: '#000', fontSize: 20 }}>:</Text>
+                                                </View>
+                                                <View style={{ flex: 65 }}>
+                                                    <Text style={{ color: '#000', fontSize: 20 }}>{selectedData[0][value.value]}</Text>
+                                                </View>
+                                            </View>
+                                        )
+                                    })
+                                }
                             </>
                         }
 
-                        <View style={{ marginTop: 30, flexDirection: 'row', justifyContent: 'space-evenly' }}>
+                        <View style={{ marginTop: 10, flexDirection: 'row', justifyContent: 'space-evenly' }}>
                             <Appbar.Action icon="pencil" size={30} onPress={() => { editData() }} />
                             <Appbar.Action icon="trash-can-outline" size={30} onPress={() => { deleteData(undefined) }} />
                         </View>
@@ -235,10 +314,8 @@ const Index = ({ navigation }) => {
             </Portal>
 
             <View style={{ flex: 1, backgroundColor: '#fff' }}>
-                <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-                    <Header props={propsHeader} />
-                    <Table props={propsTable} />
-                </TouchableWithoutFeedback>
+                <Header props={propsHeader} />
+                <Table props={propsTable} />
             </View>
         </>
     )

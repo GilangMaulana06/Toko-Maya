@@ -1,8 +1,9 @@
-const BASE_URL = 'http://192.168.1.11:3000/'
+const BASE_URL = 'https://toko-maya.vercel.app/'
+// const BASE_URL = 'http://192.168.1.8:80/'
 
-const apiGetData = async () => {
+const apiGetData = async (limit, offset) => {
     try {
-        let response = await fetch(`${BASE_URL}api/data`, {
+        let response = await fetch(`${BASE_URL}api/data?limit=${limit}&offset=${offset}`, {
             method: 'GET',
         })
         if (response.status !== 200) {
@@ -37,9 +38,9 @@ const apiInsertData = async (data) => {
     }
 }
 
-const apiUpdateData = async (data) => {
+const apiUpdateData = async (paramId, data) => {
     try {
-        let response = await fetch(`${BASE_URL}api/data`, {
+        let response = await fetch(`${BASE_URL}api/data/${paramId}`, {
             method: 'PUT',
             headers: {
                 'Accept': 'application/json',
@@ -58,10 +59,42 @@ const apiUpdateData = async (data) => {
     }
 }
 
-const apiDeleteData = async (data) => {
+const apiDeleteData = async (id) => {
     try {
-        let response = await fetch(`${BASE_URL}api/data`, {
+        let response = await fetch(`${BASE_URL}api/data/${id}`, {
             method: 'DELETE',
+        })
+        if (response.status !== 200) {
+            let _res = await (response.json())
+            throw _res
+        } else {
+            return await response.json()
+        }
+    } catch (err) {
+        throw err
+    }
+}
+
+const apiFilterData = async (nama, ukuran, type, brand, limit, offset) => {
+    try {
+        let response = await fetch(`${BASE_URL}api/data/?nama=${nama}&ukuran=${ukuran}&type=${type}&brand=${brand}&limit=${limit}&offset=${offset}`, {
+            method: 'GET',
+        })
+        if (response.status !== 200) {
+            let _res = await (response.json())
+            throw _res
+        } else {
+            return await response.json()
+        }
+    } catch (err) {
+        throw err
+    }
+}
+
+const apiSignIn = async (data) => {
+    try {
+        let response = await fetch(`${BASE_URL}api/user`, {
+            method: 'GET',
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
@@ -83,5 +116,7 @@ export {
     apiGetData,
     apiInsertData,
     apiUpdateData,
-    apiDeleteData
+    apiDeleteData,
+    apiFilterData,
+    apiSignIn
 } 

@@ -13,7 +13,7 @@ const Nav = createAppContainer(
         Form
     },
         {
-            initialRouteName: 'Main', defaultNavigationOptions: { header: () => false }
+            initialRouteName: 'Main', defaultNavigationOptions: { header: () => false,  }
         })
 )
 

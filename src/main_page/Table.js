@@ -1,29 +1,18 @@
 import { View, Text, ScrollView, RefreshControl } from 'react-native'
 import React, { useState, useEffect } from 'react'
-import { DataTable, Searchbar } from 'react-native-paper';
+import { DataTable } from 'react-native-paper';
 
-const numberOfItemsPerPageList = [2, 3, 4];
 
 const Table = ({ props }) => {
-    const [refreshing, setRefreshing] = React.useState(false);
 
-    const [searchQuery, setSearchQuery] = React.useState('');
-
-    const [page, setPage] = React.useState(0);
-    const [numberOfItemsPerPage, onItemsPerPageChange] = React.useState(numberOfItemsPerPageList[0]);
-    const from = page * numberOfItemsPerPage;
-    const to = Math.min((page + 1) * numberOfItemsPerPage, props.data.length)
-
-    React.useEffect(() => {
-        setPage(0);
-    }, [numberOfItemsPerPage]);
+    const [page, setPage] = useState(0);
 
     const modalObject = [
         {
             modal_name: "nama_item",
             title_name: "Nama item",
             show_on_table: true,
-            column_width: 30
+            column_width: 45
         },
         {
             modal_name: "ukuran",
@@ -35,46 +24,32 @@ const Table = ({ props }) => {
             modal_name: "modal",
             title_name: "Modal",
             show_on_table: true,
-            column_width: 20
+            column_width: 15
         },
         {
             modal_name: "harga_ecer",
             title_name: "Ecer",
             show_on_table: true,
-            column_width: 20
+            column_width: 15
         },
         {
             modal_name: "harga_grosir",
             title_name: "Grosir",
             show_on_table: true,
-            column_width: 20
+            column_width: 15
         },
     ]
 
-    const onRefresh = () => {
-        console.log('refresh')
-        setRefreshing(true);
-        setTimeout(() => {
-            props.getData()
-            setRefreshing(false)
-        }, 300)
+    const changePage = (page) => {
+        setPage(page)
+        props.setParamData({ ...props.paramData, offset: (page * props.paramData.limit) })
     }
 
     return (
         <>
-            {
-                props.showSearchBar &&
-                <Searchbar
-                    placeholder="Search"
-                    autoFocus={true}
-                    onChangeText={(query) => setSearchQuery(query)}
-                    value={searchQuery}
-                    style={{ backgroundColor: '#fff', marginBottom: 1 }}
-                />
-            }
             <DataTable>
                 {/* HEADER */}
-                <DataTable.Header style={{ paddingHorizontal: 0, marginBottom: 5, minHeight: '7%', }}>
+                <DataTable.Header style={{ paddingHorizontal: 0, marginBottom: 5 }}>
                     {
                         modalObject.map((value, key) => {
                             return (
@@ -87,59 +62,75 @@ const Table = ({ props }) => {
                         })
                     }
                 </DataTable.Header>
-
-                {/* BODY */}
-                <View style={{ height: props.showSearchBar ? '80%' : '75%' }}>
-                    <ScrollView
-                        refreshControl={
-                            <RefreshControl
-                                refreshing={refreshing}
-                                onRefresh={onRefresh}
-                            />
-                        }
-                    >
-                        {
-                            props.data &&
-                            props.data.map((item, index) => {
-                                return (
-                                    <DataTable.Row key={index} style={{ paddingHorizontal: 0 }} onPress={() => {
-                                        props.setSelectedData([item])
-                                        props.setShowModalDetails(true)
-                                    }}>
-                                        {
-                                            modalObject.map((value, key) => {
-                                                return (
-                                                    <DataTable.Cell key={key} style={{ flex: value.column_width, alignItems: 'center', justifyContent: 'center' }}>
-                                                        <Text style={{ fontSize: 12 }}>
-                                                            {item[value.modal_name]}
-                                                        </Text>
-                                                    </DataTable.Cell>
-                                                )
-                                            })
-                                        }
-                                    </DataTable.Row>
-                                )
-                            })
-                        }
-                    </ScrollView>
-                </View>
-
-                {
-                    !props.showSearchBar &&
-                    <DataTable.Pagination
-                        style={{ justifyContent: 'center', backgroundColor: '#ddd' }}
-                        page={page}
-                        numberOfPages={Math.ceil(props.data.length / numberOfItemsPerPage)}
-                        onPageChange={page => setPage(page)}
-                        label={`${from + 1}-${to} of ${props.data.length}`}
-                        showFastPaginationControls
-                        numberOfItemsPerPageList={numberOfItemsPerPageList}
-                        numberOfItemsPerPage={numberOfItemsPerPage}
-                        onItemsPerPageChange={onItemsPerPageChange}
-                        selectPageDropdownLabel={'Item per halaman'}
-                    />
-                }
             </DataTable>
+
+            {/* BODY */}
+            {
+                props.data?.length ?
+                    <DataTable style={{ paddingBottom: 20, maxHeight: '87%' }}>
+                        <View style={{ height: '100%' }}>
+                            <ScrollView
+                                refreshControl={
+                                    <RefreshControl
+                                        refreshing={props.refreshing}
+                                        onRefresh={props.onRefresh}
+                                    />
+                                }
+                            >
+                                {
+                                    props.data?.map((item, index) => {
+                                        return (
+                                            <DataTable.Row key={index} style={{ paddingHorizontal: 0 }} onPress={() => {
+                                                props.setSelectedData([item])
+                                                props.setShowModalDetails(true)
+                                            }}>
+                                                {
+                                                    modalObject.map((value, key) => {
+                                                        return (
+                                                            <DataTable.Cell key={key} style={{ flex: value.column_width, alignItems: 'center', justifyContent: 'center' }}>
+                                                                <Text style={{ fontSize: 12 }}>
+                                                                    {item[value.modal_name]}
+                                                                </Text>
+                                                            </DataTable.Cell>
+                                                        )
+                                                    })
+                                                }
+                                            </DataTable.Row>
+                                        )
+                                    })
+                                }
+                            </ScrollView>
+
+                            {
+                                !props.hidePagination &&
+                                <DataTable.Pagination
+                                    page={page}
+                                    numberOfPages={Math.ceil(parseInt(props.totalData) / props.paramData.limit)}
+                                    onPageChange={(page) => changePage(page)}
+                                    label={`${page + 1} / ${Math.ceil(parseInt(props.totalData) / parseInt(props.paramData.limit))}`}
+                                    style={{ justifyContent: 'center' }}
+                                    showFastPaginationControls
+                                    selectPageDropdownLabel={'Item per page'}
+                                // numberOfItemsPerPageList={numberOfItemsPerPageList}
+                                // numberOfItemsPerPage={numberOfItemsPerPage}
+                                // onItemsPerPageChange={onItemsPerPageChange}
+                                />
+                            }
+                        </View>
+                    </DataTable>
+                    :
+                    <>
+                        <ScrollView
+                            refreshControl={
+                                <RefreshControl
+                                    refreshing={props.refreshing}
+                                    onRefresh={props.onRefresh}
+                                />
+                            }
+                        >
+                        </ScrollView>
+                    </>
+            }
         </>
     )
 }
