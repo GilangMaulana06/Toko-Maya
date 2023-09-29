@@ -11,8 +11,8 @@ const { width, height } = Dimensions.get('screen')
 const Index = ({ navigation }) => {
 
     const [paramData, setParamData] = useState({
-        limit: 10,
-        offset: 0
+        limit: 15,
+        offset: 0,
     })
 
     const [data, setData] = useState([])
@@ -43,12 +43,12 @@ const Index = ({ navigation }) => {
             placeholder: 'contoh : 10 inch / 10*30',
             onChangeText: (text) => setUkuran(text)
         },
-        {
-            label: 'Tipe barang',
-            value: type,
-            placeholder: '',
-            onChangeText: (text) => setType(text)
-        },
+        // {
+        //     label: 'Tipe barang',
+        //     value: type,
+        //     placeholder: '',
+        //     onChangeText: (text) => setType(text)
+        // },
         {
             label: 'Brand',
             value: brand,
@@ -154,24 +154,32 @@ const Index = ({ navigation }) => {
         console.log('FILTER DATA')
         setDisableButton(true)
         try {
-            const res = await apiFilterData(nama, ukuran, type, brand, paramData.limit, 0)
-            if (res.data.length === 0) {
-                Alert.alert('Barang yang anda cari tidak ditemukan', 'Ulangi lagi', [
+            if (!nama && !ukuran && !type && !brand) {
+                Alert.alert('Isi data terlebih dahulu', '', [
                     {
                         text: 'OK'
                     }
                 ])
-                setDisableButton(false)
             } else {
-                setTotalData(res.total_data)
-                setData(res.data)
-                setNama('')
-                setUkuran('')
-                setType('')
-                setBrand('')
-                setShowModalFilter(false)
-                setDisableButton(false)
-                setHidePagination(true)
+                const res = await apiFilterData(nama, ukuran, type, brand, '', 0)
+                if (res.data.length === 0) {
+                    Alert.alert('Barang yang anda cari tidak ditemukan', 'Ulangi lagi', [
+                        {
+                            text: 'OK'
+                        }
+                    ])
+                    setDisableButton(false)
+                } else {
+                    setTotalData(res.total_data)
+                    setData(res.data)
+                    setNama('')
+                    setUkuran('')
+                    setType('')
+                    setBrand('')
+                    setShowModalFilter(false)
+                    setDisableButton(false)
+                    setHidePagination(true)
+                }
             }
         } catch (err) {
             console.log(err)
