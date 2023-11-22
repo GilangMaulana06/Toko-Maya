@@ -1,10 +1,12 @@
-import { View, Text } from 'react-native'
+import { View, Text, Image, Dimensions } from 'react-native'
 import React from 'react'
+
+const { width, height } = Dimensions.get('screen')
 
 const SplashScreen = () => {
   return (
     <View style={{flex: 1, backgroundColor: '#fff', justifyContent:'center', alignItems: 'center'}}>
-      <Text style={{fontSize: 30, color: '#000'}}>LOGO TOKO MAYA</Text>
+      <Image source={require('./logo_maya.jpg')} style={{ width: width, height: width}}></Image>
     </View>
   )
 }

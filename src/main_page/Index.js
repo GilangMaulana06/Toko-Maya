@@ -1,61 +1,33 @@
-import { View, Text, Keyboard, Dimensions, Alert } from 'react-native'
+import { View, Text, Keyboard, Dimensions, Alert, ScrollView, TouchableOpacity } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import Header from './Header'
 import Table from './Table'
-import { TouchableWithoutFeedback } from 'react-native-gesture-handler'
-import { Modal, Portal, TextInput, Button, Appbar } from 'react-native-paper'
-import { apiDeleteData, apiGetData, apiFilterData } from '../api/api'
+import { Modal, Portal, TextInput, Button, Appbar, List } from 'react-native-paper'
+import { apiDeleteData, apiGetData, apiFilterData, apiGetDataSumber } from '../api/api'
+import { formatCurrency } from "react-native-format-currency";
+
 
 const { width, height } = Dimensions.get('screen')
+const regex = /^\d+$/
 
 const Index = ({ navigation }) => {
 
-    const [paramData, setParamData] = useState({
-        limit: 15,
-        offset: 0,
-    })
-
     const [data, setData] = useState([])
-    const [totalData, setTotalData] = useState(0)
     const [selectedData, setSelectedData] = useState([])
     const [showModalFilter, setShowModalFilter] = useState(false)
     const [showModalDetails, setShowModalDetails] = useState(false)
     const [disableButton, setDisableButton] = useState(false)
     const [refreshing, setRefreshing] = useState(false);
-    const [hidePagination, setHidePagination] = useState(false)
+    const [showListTable, setShowListTable] = useState(false)
 
     // STATE MODAL
     const [nama, setNama] = useState('')
     const [ukuran, setUkuran] = useState('')
     const [type, setType] = useState('')
     const [brand, setBrand] = useState('')
-
-    const modalObject = [
-        {
-            label: 'Nama barang',
-            value: nama,
-            placeholder: '',
-            onChangeText: (text) => setNama(text)
-        },
-        {
-            label: 'Ukuran',
-            value: ukuran,
-            placeholder: 'contoh : 10 inch / 10*30',
-            onChangeText: (text) => setUkuran(text)
-        },
-        // {
-        //     label: 'Tipe barang',
-        //     value: type,
-        //     placeholder: '',
-        //     onChangeText: (text) => setType(text)
-        // },
-        {
-            label: 'Brand',
-            value: brand,
-            placeholder: '',
-            onChangeText: (text) => setBrand(text)
-        },
-    ]
+    const [sumberBarang, setSumberBarang] = useState('')
+    const [listNamaToko, setListNamaToko] = useState([])
+    const [textSearch, setTextSearch] = useState('')
 
     const detailSchema = [
         {
@@ -86,20 +58,22 @@ const Index = ({ navigation }) => {
             title: 'Harga grosir',
             value: 'harga_grosir'
         },
+        {
+            title: 'Sumber',
+            value: 'sumber_barang'
+        },
     ]
 
     useEffect(() => {
-        getData()
-    }, [paramData])
+        getDataSumber()
+    }, [])
 
-    const getData = async () => {
+    const getDataSumber = async () => {
         try {
-            const res = await apiGetData(paramData.limit, paramData.offset)
-            setTotalData(res.total_data)
-            setData(res?.data)
-        } catch (err) {
-            console.log(err)
-            Alert.alert('Error bang', 'Telpon urang bueknyo', [
+            const dataSumber = await apiGetDataSumber()
+            setListNamaToko(dataSumber.data)
+        } catch (e) {
+            Alert.alert('Data Sumber Toko gagal dimuat', 'Ulangi lagi', [
                 {
                     text: 'OK'
                 }
@@ -114,7 +88,7 @@ const Index = ({ navigation }) => {
 
     const deleteData = async (isConfirm) => {
         if (isConfirm === undefined) {
-            Alert.alert('Data berhasil dihapus', '', [
+            Alert.alert('Anda yakin ingin menghapus item ini?', '', [
                 {
                     text: 'Cancel',
                     onPress: () => deleteData('CANCEL')
@@ -132,7 +106,6 @@ const Index = ({ navigation }) => {
                     const filter = data.filter(x => selectedData[0]['id'] !== x.id)
                     setData(filter)
                     setShowModalDetails(false)
-                    setTotalData(totalData - 1)
                     Alert.alert('Data berhasil dihapus', '', [
                         {
                             text: 'OK'
@@ -154,14 +127,15 @@ const Index = ({ navigation }) => {
         console.log('FILTER DATA')
         setDisableButton(true)
         try {
-            if (!nama && !ukuran && !type && !brand) {
+            if (!nama && !ukuran && !type && !brand && !sumberBarang) {
                 Alert.alert('Isi data terlebih dahulu', '', [
                     {
                         text: 'OK'
                     }
                 ])
+                setDisableButton(false)
             } else {
-                const res = await apiFilterData(nama, ukuran, type, brand, '', 0)
+                const res = await apiFilterData(nama, ukuran, type, brand, sumberBarang, '', 0)
                 if (res.data.length === 0) {
                     Alert.alert('Barang yang anda cari tidak ditemukan', 'Ulangi lagi', [
                         {
@@ -170,15 +144,9 @@ const Index = ({ navigation }) => {
                     ])
                     setDisableButton(false)
                 } else {
-                    setTotalData(res.total_data)
                     setData(res.data)
-                    setNama('')
-                    setUkuran('')
-                    setType('')
-                    setBrand('')
                     setShowModalFilter(false)
                     setDisableButton(false)
-                    setHidePagination(true)
                 }
             }
         } catch (err) {
@@ -187,6 +155,7 @@ const Index = ({ navigation }) => {
             setUkuran('')
             setType('')
             setBrand('')
+            setSumberBarang('')
             setShowModalFilter(false)
             setDisableButton(false)
             Alert.alert('Filter data gagal', 'Ulangi lagi', [
@@ -200,16 +169,23 @@ const Index = ({ navigation }) => {
     const onRefresh = async () => {
         console.log('refresh page')
         setRefreshing(true);
-        getData()
-        setHidePagination(false)
+        if (!nama && !ukuran && !type && !brand) {
+
+        } else {
+            filterData()
+        }
         setTimeout(() => {
             setRefreshing(false)
         }, 150)
     }
 
+    const onShowModalFilter = () => {
+        setShowModalFilter(true)
+    }
+
     const propsHeader = {
         setData: setData,
-        setShowModalFilter: setShowModalFilter,
+        onShowModalFilter: onShowModalFilter,
         navigation: navigation,
     }
 
@@ -221,75 +197,183 @@ const Index = ({ navigation }) => {
         refreshing: refreshing,
         setRefreshing: setRefreshing,
         onRefresh: onRefresh,
-        paramData: paramData,
-        setParamData: setParamData,
-        totalData: totalData,
-        setTotalData: setTotalData,
-        hidePagination: hidePagination
     }
 
     return (
         <>
             {/* MODAL FOR FILTER */}
             <Portal>
-                <Modal visible={showModalFilter} onDismiss={() => {
-                    setNama('')
-                    setUkuran('')
-                    setType('')
-                    setBrand('')
-                    setShowModalFilter(false)
-                    setDisableButton(false)
-                }} style={{
+                <Modal visible={showModalFilter} dismissable={false} style={{
                     width: width,
                     alignItems: 'center',
                 }}>
                     <View style={{ width: width, backgroundColor: '#fff', borderRadius: 10, padding: 20 }}>
-                        <Text style={{
-                            fontSize: 23,
-                            fontWeight: 'bold',
-                            alignSelf: 'center',
-                            color: '#000'
-                        }}>Filter barang</Text>
-                        {
-                            modalObject.map((x, key) => {
-                                return (
-                                    <TextInput key={key}
-                                        activeOutlineColor='black'
-                                        style={{ textAlign: 'center', width: '90%', alignSelf: 'center', marginTop: 20 }}
-                                        mode='outlined'
-                                        label={x.label}
-                                        value={x.value}
-                                        placeholder={x.placeholder}
-                                        onChangeText={x.onChangeText}
-                                    />
-                                )
-                            })
-                        }
+                        <ScrollView keyboardShouldPersistTaps='handled'>
+                            <View style={{ flexDirection: 'row' }}>
+                                <View style={{ flex: 1, alignItems: 'flex-start' }}>
+                                    <Appbar.Action icon="sync" size={25} onPress={() => {
+                                        setNama('')
+                                        setUkuran('')
+                                        setType('')
+                                        setBrand('')
+                                        setSumberBarang('')
+                                        setTextSearch('')
+                                        setShowListTable(false)
+                                    }} />
+                                </View>
+                                <Text style={{
+                                    fontSize: 23,
+                                    fontWeight: 'bold',
+                                    alignSelf: 'center',
+                                    color: '#000',
+                                }}>Filter barang</Text>
+                                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                                    <Appbar.Action icon="close" size={25} onPress={() => {
+                                        setShowModalFilter(false)
+                                        setShowListTable(false)
+                                        setDisableButton(false)
+                                    }} />
+                                </View>
+                            </View>
 
-                        <Button disabled={disableButton} mode='contained' style={{ width: '50%', alignSelf: 'center', marginTop: 30 }} onPress={() => { filterData() }}>
-                            Cari
-                        </Button>
+                            <TextInput
+                                onFocus={() => setShowListTable(false)}
+                                autoCorrect={false}
+                                activeOutlineColor='black'
+                                style={{ textAlign: 'center', width: '90%', alignSelf: 'center', marginTop: 20 }}
+                                mode='outlined'
+                                label={'Nama barang'}
+                                value={nama}
+                                onChangeText={(text) => setNama(text)}
+                            />
+
+                            <View style={{
+                                flexDirection: 'row',
+                                justifyContent: 'space-between',
+                                width: '90%',
+                                alignSelf: 'center'
+                            }}>
+                                <TextInput
+                                    onFocus={() => setShowListTable(false)}
+                                    autoCorrect={false}
+                                    activeOutlineColor='black'
+                                    style={{ textAlign: 'center', width: '49%', marginTop: 20 }}
+                                    mode='outlined'
+                                    label={'Ukuran'}
+                                    value={ukuran}
+                                    onChangeText={(text) => setUkuran(text)}
+
+                                />
+                                <TextInput
+                                    onFocus={() => setShowListTable(false)}
+                                    autoCorrect={false}
+                                    activeOutlineColor='black'
+                                    style={{ textAlign: 'center', width: '49%', marginTop: 20 }}
+                                    mode='outlined'
+                                    label={'Tipe barang'}
+                                    value={type}
+                                    onChangeText={(text) => setType(text)}
+                                />
+                            </View>
+
+                            <View style={{
+                                flexDirection: 'row',
+                                justifyContent: 'space-between',
+                                width: '90%',
+                                alignSelf: 'center'
+                            }}>
+                                <TextInput
+                                    onFocus={() => setShowListTable(false)}
+                                    autoCorrect={false}
+                                    activeOutlineColor='black'
+                                    style={{ textAlign: 'center', width: '60%', marginTop: 20 }}
+                                    mode='outlined'
+                                    label={'Brand'}
+                                    value={brand}
+                                    onChangeText={(text) => setBrand(text)}
+                                />
+                                <TextInput
+                                    onFocus={() => setShowListTable(true)}
+                                    autoCorrect={false}
+                                    activeOutlineColor='black'
+                                    style={{ textAlign: 'center', width: '38%', marginTop: 20 }}
+                                    mode='outlined'
+                                    label={'Sumber'}
+                                    value={sumberBarang}
+                                    onChangeText={(text) => {
+                                        setTextSearch(text)
+                                        setSumberBarang(text)
+                                    }}
+                                />
+                            </View>
+
+                            {
+                                showListTable &&
+                                <List.Section style={{ backgroundColor: 'red', width: '90%', alignSelf: 'center' }}>
+                                    <ScrollView
+                                        keyboardShouldPersistTaps={'handled'}
+                                        nestedScrollEnabled={true}
+                                        style={{ maxHeight: 200, backgroundColor: '#d5d9dc' }}
+                                    >
+                                        {
+                                            listNamaToko.filter(x => x.nama_toko.includes(textSearch.toUpperCase())).length === 0 ?
+                                                <List.Item
+                                                    title={'Hasil tidak ditemukan'}
+                                                />
+                                                :
+                                                listNamaToko.filter(x => x.nama_toko.includes(textSearch.toUpperCase())).map((value, key) => {
+                                                    return (
+                                                        <List.Item
+                                                            key={key}
+                                                            title={value.nama_toko}
+                                                            onPress={() => {
+                                                                setSumberBarang(value.nama_toko)
+                                                                setShowListTable(false)
+                                                                Keyboard.dismiss()
+                                                            }}
+                                                        />
+                                                    )
+                                                }
+                                                )
+                                        }
+                                    </ScrollView>
+                                </List.Section>
+                            }
+
+                            <Button disabled={disableButton} mode='contained' style={{ width: '50%', alignSelf: 'center', marginTop: 30 }}
+                                onPress={() => {
+                                    filterData()
+                                    setShowListTable(false)
+                                }}>
+                                Cari
+                            </Button>
+                        </ScrollView>
                     </View>
                 </Modal>
             </Portal>
 
             {/* MODAL FOR ITEM DETAILS */}
             <Portal>
-                <Modal visible={showModalDetails} onDismiss={() => {
-                    setSelectedData([])
-                    setShowModalDetails(false)
-                }} style={{
+                <Modal visible={showModalDetails} dismissable={false} style={{
                     width: width,
                     alignItems: 'center',
                 }}>
                     <View style={{ width: width, backgroundColor: '#fff', borderRadius: 10, padding: 20 }}>
-                        <Text style={{
-                            fontSize: 23,
-                            fontWeight: 'bold',
-                            alignSelf: 'center',
-                            color: '#000',
-                            marginBottom: 20
-                        }}>Informasi barang</Text>
+                        <View style={{ flexDirection: 'row', marginBottom: 20 }}>
+                            <Text style={{ flex: 1 }}></Text>
+                            <Text style={{
+                                fontSize: 23,
+                                fontWeight: 'bold',
+                                alignSelf: 'center',
+                                color: '#000',
+                            }}>Informasi barang</Text>
+                            <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                                <Appbar.Action icon="close" size={25} onPress={() => {
+                                    setShowModalDetails(false)
+                                    setSelectedData([])
+                                }} />
+                            </View>
+                        </View>
 
                         {selectedData.length > 0 &&
                             <>
@@ -304,7 +388,14 @@ const Index = ({ navigation }) => {
                                                     <Text style={{ color: '#000', fontSize: 20 }}>:</Text>
                                                 </View>
                                                 <View style={{ flex: 65 }}>
-                                                    <Text style={{ color: '#000', fontSize: 20 }}>{selectedData[0][value.value]}</Text>
+                                                    <Text style={{ color: '#000', fontSize: 20 }}>
+                                                        {
+                                                            value.value === 'ukuran' ?
+                                                                selectedData[0][value.value]
+                                                                :
+                                                                regex.test(selectedData[0][value.value]) ? formatCurrency({ amount: Number(selectedData[0][value.value]), code: 'IDR' })[1] : selectedData[0][value.value]
+                                                        }
+                                                    </Text>
                                                 </View>
                                             </View>
                                         )

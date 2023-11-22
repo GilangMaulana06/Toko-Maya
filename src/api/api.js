@@ -1,5 +1,5 @@
 const BASE_URL = 'https://toko-maya.vercel.app/'
-// const BASE_URL = 'http://192.168.1.8:80/'
+// const BASE_URL = 'http://192.168.1.21:80/'
 
 const apiGetData = async (limit, offset) => {
     try {
@@ -75,9 +75,9 @@ const apiDeleteData = async (id) => {
     }
 }
 
-const apiFilterData = async (nama, ukuran, type, brand, limit, offset) => {
+const apiFilterData = async (nama, ukuran, type, brand, sumberBarang, limit, offset) => {
     try {
-        let response = await fetch(`${BASE_URL}api/data/?nama=${nama}&ukuran=${ukuran}&type=${type}&brand=${brand}&limit=${limit}&offset=${offset}`, {
+        let response = await fetch(`${BASE_URL}api/data/?nama=${nama}&ukuran=${ukuran}&type=${type}&brand=${brand}&sumber_barang=${sumberBarang}&limit=${limit}&offset=${offset}`, {
             method: 'GET',
         })
         if (response.status !== 200) {
@@ -112,11 +112,28 @@ const apiSignIn = async (data) => {
     }
 }
 
+const apiGetDataSumber = async () => {
+    try {
+        let response = await fetch(`${BASE_URL}api/data_sumber`, {
+            method: 'GET',
+        })
+        if (response.status !== 200) {
+            let _res = await (response.json())
+            throw _res
+        } else {
+            return await response.json()
+        }
+    } catch (err) {
+        throw err
+    }
+}
+
 export {
     apiGetData,
     apiInsertData,
     apiUpdateData,
     apiDeleteData,
     apiFilterData,
-    apiSignIn
+    apiSignIn,
+    apiGetDataSumber
 } 

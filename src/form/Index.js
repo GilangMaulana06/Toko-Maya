@@ -1,9 +1,10 @@
 import { View, Text, Keyboard, Alert, ScrollView } from 'react-native'
-import React, { useState } from 'react'
-import { Button, TextInput } from 'react-native-paper'
+import React, { useEffect, useState } from 'react'
+import { Appbar, Button, TextInput } from 'react-native-paper'
 import Header from './Header'
 import { TouchableWithoutFeedback } from 'react-native-gesture-handler'
-import { apiInsertData, apiUpdateData } from '../api/api'
+import { apiInsertData, apiUpdateData, apiGetDataSumber } from '../api/api'
+import { DataTable } from 'react-native-paper'
 
 const Index = ({ navigation }) => {
 
@@ -18,51 +19,35 @@ const Index = ({ navigation }) => {
     const [hargaModal, setHargaModal] = useState(selectedData ? selectedData[0]['modal'] : '')
     const [hargaEcer, setHargaEcer] = useState(selectedData ? selectedData[0]['harga_ecer'] : '')
     const [hargaGrosir, setHargaGrosir] = useState(selectedData ? selectedData[0]['harga_grosir'] : '')
+    const [sumberBarang, setSumberBarang] = useState(selectedData ? selectedData[0]['sumber_barang'] ? selectedData[0]['sumber_barang'] : '' : '')
 
+    const [namaToko, setNamaToko] = useState([])
+    const [textSearch, setTextSearch] = useState('')
     const [buttonDisable, setButtonDisable] = useState(false)
+    const [showListTable, setShowListTable] = useState(false)
 
-    const schemaForm = [
-        {
-            value: itemName,
-            label: 'Nama barang',
-            onChange: (text) => setItemName(text),
-        },
-        {
-            value: type,
-            label: 'Tipe barang',
-            onChange: (text) => setType(text),
-        },
-        {
-            value: brand,
-            label: 'Brand',
-            onChange: (text) => setBrand(text),
-        },
-        {
-            value: size,
-            label: 'Ukuran',
-            onChange: (text) => setSize(text),
-        },
-        {
-            value: hargaModal,
-            label: 'Harga modal',
-            onChange: (text) => setHargaModal(text),
-        },
-        {
-            value: hargaEcer,
-            label: 'Harga ecer',
-            onChange: (text) => setHargaEcer(text),
-        },
-        {
-            value: hargaGrosir,
-            label: 'Harga grosir',
-            onChange: (text) => setHargaGrosir(text),
-        },
-    ]
+    useEffect(() => {
+        getDataSumber()
+    }, [])
+
+    const getDataSumber = async () => {
+        try {
+            const dataSumber = await apiGetDataSumber()
+            setNamaToko(dataSumber.data)
+        } catch (e) {
+            Alert.alert('Data Sumber Toko gagal dimuat', 'Ulangi lagi', [
+                {
+                    text: 'OK'
+                }
+            ])
+        }
+    }
 
     const onSubmit = async (typeButton) => {
         setButtonDisable(true)
-        if (itemName.length === 0 || type.length === 0) {
-            Alert.alert('Silahkan masukan nama dan tipe barang', '', [
+        setShowListTable(false)
+        if (itemName.length === 0) {
+            Alert.alert('Silahkan masukan nama barang', '', [
                 {
                     text: 'OK',
                     onPress: () => { setButtonDisable(false) }
@@ -73,12 +58,13 @@ const Index = ({ navigation }) => {
                 const paramId = selectedData[0].id
                 const value = {
                     nama_item: itemName,
-                    type: type,
-                    brand: brand,
-                    ukuran: size,
-                    modal: hargaModal,
-                    harga_ecer: hargaEcer,
-                    harga_grosir: hargaGrosir
+                    type: type.length === 0 ? '-' : type,
+                    brand: brand.length === 0 ? '-' : brand,
+                    ukuran: size.length === 0 ? '-' : size,
+                    modal: hargaModal.length === 0 ? '-' : hargaModal,
+                    harga_ecer: hargaEcer.length === 0 ? '-' : hargaEcer,
+                    harga_grosir: hargaGrosir.length === 0 ? '-' : hargaGrosir,
+                    sumber_barang: sumberBarang.length === 0 ? '-' : sumberBarang.toUpperCase()
                 }
 
                 console.log('EDIT')
@@ -108,12 +94,13 @@ const Index = ({ navigation }) => {
             } else {
                 const value = {
                     nama_item: itemName,
-                    type: type,
-                    brand: brand,
-                    ukuran: size,
-                    modal: hargaModal,
-                    harga_ecer: hargaEcer,
-                    harga_grosir: hargaGrosir
+                    type: type.length === 0 ? '-' : type,
+                    brand: brand.length === 0 ? '-' : brand,
+                    ukuran: size.length === 0 ? '-' : size,
+                    modal: hargaModal.length === 0 ? '-' : hargaModal,
+                    harga_ecer: hargaEcer.length === 0 ? '-' : hargaEcer,
+                    harga_grosir: hargaGrosir.length === 0 ? '-' : hargaGrosir,
+                    sumber_barang: sumberBarang.length === 0 ? '-' : sumberBarang.toUpperCase()
                 }
 
                 console.log('SAVE')
@@ -152,39 +139,177 @@ const Index = ({ navigation }) => {
     }
 
     return (
-        <ScrollView style={{ backgroundColor: '#fff' }}>
+        <ScrollView style={{ backgroundColor: '#fff' }} keyboardShouldPersistTaps='handled'>
             <View style={{ flex: 1, backgroundColor: '#fff', paddingBottom: 20 }}>
                 <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
                     <Header props={propsHeader} />
 
+                    <TextInput
+                        onFocus={() => setShowListTable(false)}
+                        autoCorrect={false}
+                        activeOutlineColor='black'
+                        style={{ textAlign: 'center', width: '90%', alignSelf: 'center', marginTop: 20 }}
+                        mode='outlined'
+                        label={'Nama Barang'}
+                        value={itemName}
+                        onChangeText={(text) => setItemName(text)}
+                    />
+
+                    <View style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        width: '90%',
+                        alignSelf: 'center'
+                    }}>
+                        <TextInput
+                            onFocus={() => setShowListTable(false)}
+                            autoCorrect={false}
+                            activeOutlineColor='black'
+                            style={{ textAlign: 'center', width: '49%', marginTop: 20 }}
+                            mode='outlined'
+                            label={'Tipe Barang'}
+                            value={type}
+                            onChangeText={(text) => setType(text)}
+                        />
+                        <TextInput
+                            onFocus={() => setShowListTable(false)}
+                            autoCorrect={false}
+                            activeOutlineColor='black'
+                            style={{ textAlign: 'center', width: '49%', marginTop: 20 }}
+                            mode='outlined'
+                            label={'Ukuran'}
+                            value={size}
+                            onChangeText={(text) => setSize(text)}
+                        />
+                    </View>
+
+                    <TextInput
+                        onFocus={() => setShowListTable(false)}
+                        autoCorrect={false}
+                        activeOutlineColor='black'
+                        style={{ textAlign: 'center', width: '90%', alignSelf: 'center', marginTop: 20 }}
+                        mode='outlined'
+                        label={'Brand'}
+                        value={brand}
+                        onChangeText={(text) => setBrand(text)}
+                    />
+
+                    <View style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        width: '90%',
+                        alignSelf: 'center'
+                    }}>
+                        <TextInput
+                            onFocus={() => setShowListTable(false)}
+                            autoCorrect={false}
+                            activeOutlineColor='black'
+                            style={{ textAlign: 'center', width: '32%', marginTop: 20 }}
+                            mode='outlined'
+                            label={'Modal'}
+                            value={hargaModal}
+                            onChangeText={(text) => hargaModal(text)}
+                        />
+                        <TextInput
+                            onFocus={() => setShowListTable(false)}
+                            autoCorrect={false}
+                            activeOutlineColor='black'
+                            style={{ textAlign: 'center', width: '32%', marginTop: 20 }}
+                            mode='outlined'
+                            label={'Ecer'}
+                            value={hargaEcer}
+                            onChangeText={(text) => setHargaEcer(text)}
+                        />
+                        <TextInput
+                            onFocus={() => setShowListTable(false)}
+                            autoCorrect={false}
+                            activeOutlineColor='black'
+                            style={{ textAlign: 'center', width: '32%', marginTop: 20 }}
+                            mode='outlined'
+                            label={'Grosir'}
+                            value={hargaGrosir}
+                            onChangeText={(text) => setHargaGrosir(text)}
+                        />
+                    </View>
+
+                    <View style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        width: '90%',
+                        alignSelf: 'center'
+                    }}>
+                        <TextInput
+                            onFocus={() => setShowListTable(true)}
+                            autoCorrect={false}
+                            activeOutlineColor='black'
+                            style={{ textAlign: 'center', width: '85%', alignSelf: 'center', marginTop: 20, marginBottom: 5 }}
+                            mode='outlined'
+                            label={'Sumber Barang'}
+                            value={sumberBarang}
+                            onChangeText={(text) => {
+                                setTextSearch(text)
+                                setSumberBarang(text)
+                            }}
+                        />
+                        <Appbar.Action
+                            icon={showListTable === true ? "chevron-down-circle-outline" : "chevron-up-circle-outline"}
+                            size={30}
+                            style={{ alignSelf: 'center', marginTop: 25 }}
+                            onPress={() => {
+                                setShowListTable(!showListTable)
+                            }}
+                        />
+                    </View>
+
                     {
-                        schemaForm.map((x, key) => {
-                            return (
-                                <TextInput
-                                    key={key}
-                                    activeOutlineColor='black'
-                                    style={{ textAlign: 'center', width: '90%', alignSelf: 'center', marginTop: 20 }}
-                                    mode='outlined'
-                                    label={x.label}
-                                    value={x.value}
-                                    onChangeText={x.onChange}
-                                />
-                            )
-                        })
+                        showListTable &&
+                        <ScrollView
+                            style={{ maxHeight: 200, width: '100%' }}
+                            disableScrollViewPanResponder={true}
+                            nestedScrollEnabled={true}
+                        >
+                            <DataTable>
+                                {
+                                    namaToko.filter(x => x.nama_toko.includes(textSearch.toUpperCase())).length === 0 ?
+                                        <DataTable.Row style={{ backgroundColor: '#d5d9dc', width: '90%', alignSelf: 'center' }}>
+                                            <DataTable.Cell>
+                                                <Text>{'Hasil tidak ditemukan'}</Text>
+                                            </DataTable.Cell>
+                                        </DataTable.Row>
+                                        :
+                                        namaToko.filter(x => x.nama_toko.includes(textSearch.toUpperCase())).map((value, key) => {
+                                            return (
+                                                <DataTable.Row key={key} style={{ backgroundColor: '#d5d9dc', width: '90%', alignSelf: 'center' }} onPress={() => {
+                                                    setSumberBarang(value.nama_toko)
+                                                    setShowListTable(false)
+                                                }}>
+                                                    <DataTable.Cell>
+                                                        <Text>{value.nama_toko}</Text>
+                                                    </DataTable.Cell>
+                                                </DataTable.Row>
+                                            )
+                                        })
+                                }
+                            </DataTable>
+                        </ScrollView>
                     }
+
                     {
                         buttonDisable ?
-                            <Button mode='contained' style={{ width: '50%', alignSelf: 'center', marginTop: 50 }}>
+                            <Button mode='contained' style={{ width: '50%', alignSelf: 'center', marginTop: 40 }}>
                                 Menyimpan...
                             </Button>
                             :
                             <View style={{ flexDirection: 'row', justifyContent: 'space-evenly' }}>
-                                <Button mode='contained' style={{ width: '30%', alignSelf: 'center', marginTop: 50 }} onPress={() => { onSubmit('save') }}>
+                                <Button mode='contained' style={{ width: '30%', alignSelf: 'center', marginTop: 40 }} onPress={() => { onSubmit('save') }}>
                                     Simpan
                                 </Button>
-                                <Button mode='contained' style={{ width: '50%', alignSelf: 'center', marginTop: 50 }} onPress={() => { onSubmit('new') }}>
-                                    Simpan dan Tambah
-                                </Button>
+                                {
+                                    !selectedData &&
+                                    <Button mode='contained' style={{ width: '50%', alignSelf: 'center', marginTop: 40 }} onPress={() => { onSubmit('new') }}>
+                                        Simpan dan Tambah
+                                    </Button>
+                                }
                             </View>
                     }
                 </TouchableWithoutFeedback>
