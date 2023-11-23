@@ -9,14 +9,17 @@ const Header = ({ props }) => {
         <Appbar.Content title="List barang" />
 
         <View style={{ flexDirection: 'column', justifyContent: 'center', }}>
-          <Appbar.Action icon="filter-outline" onPress={() => { props.onShowModalFilter() }} />
+          <Appbar.Action icon="filter-outline" onPress={() => {
+            props.onShowModalFilter()
+            props.getDataSumber()
+          }} />
           <Text style={{ color: '#000', alignSelf: 'center', bottom: 15, fontSize: 10 }}>{'Filter'}</Text>
         </View>
         <View style={{ flexDirection: 'column', justifyContent: 'center', }}>
-          <Appbar.Action icon="plus" onPress={() => { 
+          <Appbar.Action icon="plus" onPress={() => {
             props.setData([])
-            props.navigation.navigate('Form', { setData: props.setData }) 
-            }} />
+            props.navigation.navigate('Form', { setData: props.setData })
+          }} />
           <Text style={{ color: '#000', alignSelf: 'center', bottom: 15, fontSize: 10 }}>{'Tambah'}</Text>
         </View>
       </Appbar.Header>

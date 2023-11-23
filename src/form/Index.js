@@ -208,7 +208,7 @@ const Index = ({ navigation }) => {
                             mode='outlined'
                             label={'Modal'}
                             value={hargaModal}
-                            onChangeText={(text) => hargaModal(text)}
+                            onChangeText={(text) => setHargaModal(text)}
                         />
                         <TextInput
                             onFocus={() => setShowListTable(false)}
@@ -219,6 +219,7 @@ const Index = ({ navigation }) => {
                             label={'Ecer'}
                             value={hargaEcer}
                             onChangeText={(text) => setHargaEcer(text)}
+                            keyboardType='number-pad'
                         />
                         <TextInput
                             onFocus={() => setShowListTable(false)}
@@ -229,6 +230,7 @@ const Index = ({ navigation }) => {
                             label={'Grosir'}
                             value={hargaGrosir}
                             onChangeText={(text) => setHargaGrosir(text)}
+                            keyboardType='number-pad'
                         />
                     </View>
 

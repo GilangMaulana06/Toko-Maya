@@ -64,11 +64,8 @@ const Index = ({ navigation }) => {
         },
     ]
 
-    useEffect(() => {
-        getDataSumber()
-    }, [])
-
     const getDataSumber = async () => {
+        console.log('GET DATA SUMBER')
         try {
             const dataSumber = await apiGetDataSumber()
             setListNamaToko(dataSumber.data)
@@ -187,6 +184,7 @@ const Index = ({ navigation }) => {
         setData: setData,
         onShowModalFilter: onShowModalFilter,
         navigation: navigation,
+        getDataSumber: getDataSumber
     }
 
     const propsTable = {

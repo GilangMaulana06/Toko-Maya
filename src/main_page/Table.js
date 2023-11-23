@@ -45,7 +45,6 @@ const Table = ({ props }) => {
             column_width: 15
         },
     ]
-    console.log('testaaa')
 
     return (
         <>
