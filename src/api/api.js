@@ -1,4 +1,4 @@
-const BASE_URL = 'https://toko-maya.vercel.app/'
+const BASE_URL = 'https://denko-berjaya.vercel.app/'
 // const BASE_URL = 'http://192.168.1.21:80/'
 
 const apiGetData = async (limit, offset) => {
